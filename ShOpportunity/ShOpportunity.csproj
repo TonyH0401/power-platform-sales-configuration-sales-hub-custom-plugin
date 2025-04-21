@@ -9,9 +9,10 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ShOpportunity</RootNamespace>
     <AssemblyName>ShOpportunity</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -42,9 +43,11 @@
     </Reference>
     <Reference Include="Microsoft.Crm.Sdk.Proxy, Version=9.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.CrmSdk.CoreAssemblies.9.0.2.59\lib\net462\Microsoft.Crm.Sdk.Proxy.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.Xrm.Sdk, Version=9.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.CrmSdk.CoreAssemblies.9.0.2.59\lib\net462\Microsoft.Xrm.Sdk.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
@@ -95,6 +98,21 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Analyze.cs" />
+    <Compile Include="AnalyzeSentiment.cs" />
+    <Compile Include="BudgetStatus.cs" />
+    <Compile Include="DataverseContext.cs" />
+    <Compile Include="EntityOptionSetEnum.cs" />
+    <Compile Include="InitialCommunication.cs" />
+    <Compile Include="Msdyn_OpportunityGradeOptSet.cs" />
+    <Compile Include="Msdyn_OpportunityScoreTrendOptSet.cs" />
+    <Compile Include="Need.cs" />
+    <Compile Include="Opportunity.cs" />
+    <Compile Include="Opportunity_SalesStage.cs" />
+    <Compile Include="PurchaseProcess.cs" />
+    <Compile Include="PurchaseTimeFrame.cs" />
+    <Compile Include="Qooi_PricingErrorCode.cs" />
+    <Compile Include="QOOI_SkipPriceCalculation.cs" />
     <Compile Include="ShOpportunityDuplicate.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
