@@ -18,7 +18,7 @@ namespace ShOpportunity
             try
             {
                 // Verify the plugin is running
-                tracing.Trace("Verify outside the context condition of Opportunity");
+                tracing.Trace("Opportunity: Verify plugin runs");
                 if (context.InputParameters.Contains("Target") && context.InputParameters["Target"] is EntityReference)
                 {
                     // Plugin is activated using Custom Action, so 'EntityReference' is used
@@ -30,6 +30,7 @@ namespace ShOpportunity
                     // Retrieve the full data
                     Entity original = service.Retrieve(entityRefLogicalName, entityRefGUID, new ColumnSet(true));
 
+                    // Cloning process
                     var clone = new Opportunity();
                     var props = typeof(Opportunity).GetProperties();
                     foreach (var prop in props)
@@ -51,13 +52,11 @@ namespace ShOpportunity
                             prop.Name == "StatusCode" ||
                             prop.Name == "Attributes")
                             continue;
-                        //if (prop.Name == "CRfF8_ScAccountNumber") continue;
 
                         // Use this for debugging which attribute is duplicate
                         tracing.Trace("Value: {0}", prop.Name.ToString());
 
                         var value = prop.GetValue(original);
-
                         if (value != null)
                         {
                             prop.SetValue(clone, value);
@@ -65,7 +64,7 @@ namespace ShOpportunity
                     }
                     clone.Name = "[Cloned] " + clone.Name;
                     var clonedId = service.Create(clone);
-                    tracing.Trace("Verify cloning completed");
+                    tracing.Trace("Verify cloning completed: {0}", clonedId);
 
                     //// Set the output parameter as "success" once completed
                     ////context.OutputParameters["output"] = "success";
@@ -110,7 +109,8 @@ namespace ShOpportunity
                     //    //};
                     //    //service.Execute(disassociateRequest);
                     //}
-                    //// Set the output parameter as "success" once completed
+
+                    // Set the output parameter as "success" once completed
                     context.OutputParameters["output"] = "success";
                     tracing.Trace(context.OutputParameters["output"].ToString());
                 }
