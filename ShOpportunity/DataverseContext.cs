@@ -29,6 +29,17 @@ namespace ShPlugins
 		}
 		
 		/// <summary>
+		/// Gets a binding to the set of all <see cref="ShPlugins.LeadToOpportunitySalesProcess"/> entities.
+		/// </summary>
+		public System.Linq.IQueryable<ShPlugins.LeadToOpportunitySalesProcess> LeadToOpportunitySalesProcessSet
+		{
+			get
+			{
+				return this.CreateQuery<ShPlugins.LeadToOpportunitySalesProcess>();
+			}
+		}
+		
+		/// <summary>
 		/// Gets a binding to the set of all <see cref="ShPlugins.Opportunity"/> entities.
 		/// </summary>
 		public System.Linq.IQueryable<ShPlugins.Opportunity> OpportunitySet

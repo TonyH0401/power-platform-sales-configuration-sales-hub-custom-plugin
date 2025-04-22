@@ -112,56 +112,41 @@ namespace ShOpportunity
 
 
                     //
-                    //string fetchOriginalLeadOpportunityXml = $@"
-                    //    <fetch top='1'>
-                    //      <entity name='leadtoopportunitysalesprocess'>
-                    //        <all-attributes />
-                    //        <filter>
-                    //          <condition attribute='opportunityid' operator='eq' value='{original.Id}' />
-                    //        </filter>
-                    //      </entity>
-                    //    </fetch>";
-                    //Entity originalBPFLeadOpportunityType = service.RetrieveMultiple(new FetchExpression(fetchOriginalLeadOpportunityXml)).Entities[0];
-                    //tracing.Trace("Clone ID from fetch: {0}", originalBPFLeadOpportunityType.Id.ToString());
-                    ////var originalBPFLeadOpportunityType = originalBPFLeadOpportunity.Entities[0].ToEntity<LeadToOpportunitySalesProcess>();
-                    //var cloneBPFLeadOpportunity = new LeadToOpportunitySalesProcess();
-                    ////tracing.Trace("Breaker 1");
-                    //var leadProps = typeof(LeadToOpportunitySalesProcess).GetProperties();
-                    //foreach (var prop in leadProps)
-                    //{
-                    //    if (!prop.CanRead || !prop.CanWrite || prop.GetIndexParameters().Length > 0)
-                    //        continue;
-                    //    if (prop.Name == "businessprocessflowinstanceid" || // Primary key
-                    //        prop.Name.StartsWith("Created") ||
-                    //        prop.Name.StartsWith("Modified") ||
-                    //        prop.Name == "EntityState" ||
-                    //        prop.Name == "StateCode" ||
-                    //        prop.Name == "StatusCode" ||
-                    //        prop.Name == "Attributes")
-                    //        continue;
-                    //    var val = prop.GetValue(originalBPFLeadOpportunityType);
-                    //    if (val != null)
-                    //        prop.SetValue(cloneBPFLeadOpportunity, val);
-                    //}
-                    //var clonedd= service.Create(clone);
-                    //tracing.Trace("After create clone: {0}", clonedd);
-
-                    //tracing.Trace("Breaker 2");
-                    //// Step 3: Link to the new Opportunity
-                    //cloneBPFLeadOpportunity.OpportunityId = new EntityReference("opportunity", clonedId);
-                    //tracing.Trace("Breaker 3");
-                    //// Step 4: Create new BPF record
-                    //Guid newBpfId = service.Create(cloneBPFLeadOpportunity);
-                    //tracing.Trace("Value Lead BPF: {0}", newBpfId);
-
-
-
-
-
-
-
-
-
+                    string fetchOriginalLeadOpportunityXml = $@"
+                        <fetch top='1'>
+                          <entity name='leadtoopportunitysalesprocess'>
+                            <all-attributes />
+                            <filter>
+                              <condition attribute='opportunityid' operator='eq' value='{original.Id}' />
+                            </filter>
+                          </entity>
+                        </fetch>";
+                    var originalBPFLeadOpportunity = service.RetrieveMultiple(new FetchExpression(fetchOriginalLeadOpportunityXml)).Entities[0];
+                    LeadToOpportunitySalesProcess originalBPFLeadOpportunityType = originalBPFLeadOpportunity.ToEntity<LeadToOpportunitySalesProcess>();
+                    tracing.Trace("Original ID from fetch: {0}", originalBPFLeadOpportunityType.Id.ToString());
+                    var cloneBPFLeadOpportunity = new LeadToOpportunitySalesProcess();
+                    LeadToOpportunitySalesProcess cloneBPFLeadOpportunityType = new LeadToOpportunitySalesProcess();
+                    var leadProps = typeof(LeadToOpportunitySalesProcess).GetProperties();
+                    foreach (var prop in leadProps)
+                    {
+                        if (!prop.CanRead || !prop.CanWrite || prop.GetIndexParameters().Length > 0)
+                            continue;
+                        if (prop.Name == "businessprocessflowinstanceid" ||
+                            prop.Name.StartsWith("Created") ||
+                            prop.Name.StartsWith("Modified") ||
+                            prop.Name == "EntityState" ||
+                            prop.Name == "StateCode" ||
+                            prop.Name == "StatusCode" ||
+                            prop.Name == "Attributes")
+                            continue;
+                        var val = prop.GetValue(originalBPFLeadOpportunityType);
+                        if (val != null)
+                            prop.SetValue(cloneBPFLeadOpportunityType, val);
+                    }
+                    cloneBPFLeadOpportunityType.OpportunityId = new EntityReference("opportunity", clonedId);
+                    //cloneBPFLeadOpportunityType.OpportunityId = new EntityReference("lead", clonedLeadId);
+                    Guid newLeadProcess = service.Create(cloneBPFLeadOpportunity);
+                    tracing.Trace("After create clone: {0}", newLeadProcess);
 
 
 
