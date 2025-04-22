@@ -154,6 +154,7 @@ namespace ShOpportunity
                         //};
                         //service.Execute(disassociateRequest);
                     }
+                    tracing.Trace("Verify associate contacts with opportunity");
 
                     // Set the output parameter as "success" once completed
                     //context.OutputParameters["output"] = "success";
