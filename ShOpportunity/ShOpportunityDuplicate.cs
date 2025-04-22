@@ -42,7 +42,7 @@ namespace ShOpportunity
                         if ((prop.Name.EndsWith("Id", StringComparison.OrdinalIgnoreCase) &&
                              prop.Name != "CustomerId" &&
                              prop.Name != "ParentContactId" &&
-                             prop.Name != "ParentAccountId" &&
+                             prop.Name != "ParentAccountId" && 
                              prop.Name != "OwnerId") ||
                             prop.Name.StartsWith("Created", StringComparison.OrdinalIgnoreCase) ||
                             prop.Name.StartsWith("Modified", StringComparison.OrdinalIgnoreCase) ||
@@ -54,7 +54,7 @@ namespace ShOpportunity
                             continue;
 
                         // Use this for debugging which attribute is duplicate
-                        tracing.Trace("Value: {0}", prop.Name.ToString());
+                        //tracing.Trace("Value: {0}", prop.Name.ToString());
 
                         var value = prop.GetValue(original);
                         if (value != null)
@@ -65,6 +65,62 @@ namespace ShOpportunity
                     clone.Name = "[Cloned] " + clone.Name;
                     var clonedId = service.Create(clone);
                     tracing.Trace("Verify cloning completed: {0}", clonedId);
+
+                    //// Step 1: Fetch existing BPF for original opportunity
+                    //string fetchXml = $@"
+                    //        <fetch top='1'>
+                    //          <entity name='opportunitysalesprocess'>
+                    //            <all-attributes />
+                    //            <filter>
+                    //              <condition attribute='opportunityid' operator='eq' value='{original.Id}' />
+                    //            </filter>
+                    //          </entity>
+                    //        </fetch>";
+                    //var result = service.RetrieveMultiple(new FetchExpression(fetchXml));
+                    //if (result.Entities.Count > 0)
+                    //{
+                    //    var originalBpf = result.Entities[0].ToEntity<OpportunitySalesProcess>();
+
+                    //    // Step 2: Clone the BPF
+                    //    var clonedBpf = new OpportunitySalesProcess();
+
+                    //    foreach (var prop in typeof(OpportunitySalesProcess).GetProperties())
+                    //    {
+                    //        if (!prop.CanRead || !prop.CanWrite || prop.GetIndexParameters().Length > 0)
+                    //            continue;
+
+                    //        if (prop.Name.Equals("OpportunitySalesProcessId") ||  // Primary Key
+                    //            prop.Name.StartsWith("Created") ||
+                    //            prop.Name.StartsWith("Modified") ||
+                    //            prop.Name == "EntityState" ||
+                    //            prop.Name == "StateCode" ||
+                    //            prop.Name == "StatusCode" ||
+                    //            prop.Name == "Attributes")
+                    //            continue;
+
+                    //        var val = prop.GetValue(originalBpf);
+                    //        if (val != null)
+                    //            prop.SetValue(clonedBpf, val);
+                    //    }
+
+                    //    // Step 3: Link to cloned Opportunity
+                    //    clonedBpf.OpportunityId = new EntityReference(Opportunity.EntityLogicalName, clonedId);
+
+                    //    // Step 4: Create the new BPF record
+                    //    var bpfId = service.Create(clonedBpf);
+                    //}
+
+                    var originalOpportunity = original.ToEntity<Opportunity>();
+                    // Copy stage progression fields
+                    var stageUpdate = new Opportunity
+                    {
+                        Id = clonedId,
+                        ProcessId = originalOpportunity.ProcessId,
+                        StageId = originalOpportunity.StageId,
+                        TraversedPath = originalOpportunity.TraversedPath
+                    };
+                    service.Update(stageUpdate);
+                    tracing.Trace("BPF stage progression cloned.");
 
                     //// Set the output parameter as "success" once completed
                     ////context.OutputParameters["output"] = "success";
