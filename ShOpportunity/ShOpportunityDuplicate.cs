@@ -67,7 +67,7 @@ namespace ShOpportunity
                     tracing.Trace("Verify cloning Opportunity completed: {0}", clonedId);
 
 
-                    // This process enough, it has already created Opportunity and BPF with all of the corresponding data
+                    // This process is enough, it has already created Opportunity and BPF with all of the corresponding data
                     // What I need is the stage itself. I can achive this by fetching OpportunitySalesProcess after.
 
                     // Fetch data from the original BPF
@@ -109,49 +109,6 @@ namespace ShOpportunity
                         };
                         service.Update(clonedAccount);
                     }
-
-
-                    //
-                    string fetchOriginalLeadOpportunityXml = $@"
-                        <fetch top='1'>
-                          <entity name='leadtoopportunitysalesprocess'>
-                            <all-attributes />
-                            <filter>
-                              <condition attribute='opportunityid' operator='eq' value='{original.Id}' />
-                            </filter>
-                          </entity>
-                        </fetch>";
-                    var originalBPFLeadOpportunity = service.RetrieveMultiple(new FetchExpression(fetchOriginalLeadOpportunityXml)).Entities[0];
-                    LeadToOpportunitySalesProcess originalBPFLeadOpportunityType = originalBPFLeadOpportunity.ToEntity<LeadToOpportunitySalesProcess>();
-                    tracing.Trace("Original ID from fetch: {0}", originalBPFLeadOpportunityType.Id.ToString());
-                    var cloneBPFLeadOpportunity = new LeadToOpportunitySalesProcess();
-                    LeadToOpportunitySalesProcess cloneBPFLeadOpportunityType = new LeadToOpportunitySalesProcess();
-                    var leadProps = typeof(LeadToOpportunitySalesProcess).GetProperties();
-                    foreach (var prop in leadProps)
-                    {
-                        if (!prop.CanRead || !prop.CanWrite || prop.GetIndexParameters().Length > 0)
-                            continue;
-                        if (prop.Name == "businessprocessflowinstanceid" ||
-                            prop.Name.StartsWith("Created") ||
-                            prop.Name.StartsWith("Modified") ||
-                            prop.Name == "EntityState" ||
-                            prop.Name == "StateCode" ||
-                            prop.Name == "StatusCode" ||
-                            prop.Name == "Attributes")
-                            continue;
-                        var val = prop.GetValue(originalBPFLeadOpportunityType);
-                        if (val != null)
-                            prop.SetValue(cloneBPFLeadOpportunityType, val);
-                    }
-                    cloneBPFLeadOpportunityType.OpportunityId = new EntityReference("opportunity", clonedId);
-                    //cloneBPFLeadOpportunityType.OpportunityId = new EntityReference("lead", clonedLeadId);
-                    Guid newLeadProcess = service.Create(cloneBPFLeadOpportunity);
-                    tracing.Trace("After create clone: {0}", newLeadProcess);
-
-
-
-
-
 
                     //// Set the output parameter as "success" once completed
                     ////context.OutputParameters["output"] = "success";
@@ -198,7 +155,8 @@ namespace ShOpportunity
                     //}
 
                     // Set the output parameter as "success" once completed
-                    context.OutputParameters["output"] = "success";
+                    //context.OutputParameters["output"] = "success";
+                    context.OutputParameters["output"] = clonedId.ToString();
                     tracing.Trace(context.OutputParameters["output"].ToString());
                 }
             }
