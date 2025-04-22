@@ -38,25 +38,18 @@ namespace ShOpportunity
                             !prop.CanRead ||
                             prop.GetIndexParameters().Length > 0)
                             continue;
-                        if (prop.Name.EndsWith("Id", StringComparison.OrdinalIgnoreCase) ||
+                        if ((prop.Name.EndsWith("Id", StringComparison.OrdinalIgnoreCase) &&
+                             prop.Name != "CustomerId" &&
+                             prop.Name != "ParentContactId" &&
+                             prop.Name != "ParentAccountId" &&
+                             prop.Name != "OwnerId") ||
                             prop.Name.StartsWith("Created", StringComparison.OrdinalIgnoreCase) ||
                             prop.Name.StartsWith("Modified", StringComparison.OrdinalIgnoreCase) ||
                             prop.Name == "OpportunityId" ||
-                            //prop.Name == "StageId" ||
-                            //prop.Name == "ProcessId" ||
-                            //prop.Name == "StepId" ||
                             prop.Name == "EntityState" ||
                             prop.Name == "StateCode" ||
                             prop.Name == "StatusCode" ||
-                            prop.Name == "Attributes"
-                            //prop.Name.Contains("ExtensionData") ||
-                            //prop.Name.Contains("Lazy") ||
-                            //prop.Name == "RowVersion" ||
-                            //prop.Name == "KeyAttributes" ||
-                            //prop.Name == "RelatedEntities" ||
-                            //prop.Name == "FormattedValues" || 
-                            //prop.Name == "LogicalName"
-                            )
+                            prop.Name == "Attributes")
                             continue;
                         //if (prop.Name == "CRfF8_ScAccountNumber") continue;
 
