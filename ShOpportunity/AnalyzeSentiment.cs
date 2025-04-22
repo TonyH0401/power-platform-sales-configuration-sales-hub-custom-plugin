@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace SalesConfigurationPlugins
+namespace ShPlugins
 {
 	
 	
@@ -123,7 +123,7 @@ namespace SalesConfigurationPlugins
 			}
 			set
 			{
-				this.Results["DocumentsCores"] = value;
+				this.Results["documentScores"] = value;
 			}
 		}
 		
@@ -142,7 +142,7 @@ namespace SalesConfigurationPlugins
 			}
 			set
 			{
-				this.Results["Sentences"] = value;
+				this.Results["sentences"] = value;
 			}
 		}
 		
@@ -161,7 +161,7 @@ namespace SalesConfigurationPlugins
 			}
 			set
 			{
-				this.Results["Sentiment"] = value;
+				this.Results["sentiment"] = value;
 			}
 		}
 	}

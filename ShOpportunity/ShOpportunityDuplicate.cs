@@ -1,6 +1,6 @@
 ﻿using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
-using SalesConfigurationPlugins;
+using ShPlugins;
 using System;
 using System.ServiceModel;
 
@@ -42,7 +42,7 @@ namespace ShOpportunity
                         if ((prop.Name.EndsWith("Id", StringComparison.OrdinalIgnoreCase) &&
                              prop.Name != "CustomerId" &&
                              prop.Name != "ParentContactId" &&
-                             prop.Name != "ParentAccountId" && 
+                             prop.Name != "ParentAccountId" &&
                              prop.Name != "OwnerId") ||
                             prop.Name.StartsWith("Created", StringComparison.OrdinalIgnoreCase) ||
                             prop.Name.StartsWith("Modified", StringComparison.OrdinalIgnoreCase) ||
@@ -64,63 +64,109 @@ namespace ShOpportunity
                     }
                     clone.Name = "[Cloned] " + clone.Name;
                     var clonedId = service.Create(clone);
-                    tracing.Trace("Verify cloning completed: {0}", clonedId);
+                    tracing.Trace("Verify cloning Opportunity completed: {0}", clonedId);
 
-                    //// Step 1: Fetch existing BPF for original opportunity
-                    //string fetchXml = $@"
-                    //        <fetch top='1'>
-                    //          <entity name='opportunitysalesprocess'>
-                    //            <all-attributes />
-                    //            <filter>
-                    //              <condition attribute='opportunityid' operator='eq' value='{original.Id}' />
-                    //            </filter>
-                    //          </entity>
-                    //        </fetch>";
-                    //var result = service.RetrieveMultiple(new FetchExpression(fetchXml));
-                    //if (result.Entities.Count > 0)
-                    //{
-                    //    var originalBpf = result.Entities[0].ToEntity<OpportunitySalesProcess>();
 
-                    //    // Step 2: Clone the BPF
-                    //    var clonedBpf = new OpportunitySalesProcess();
+                    // This process enough, it has already created Opportunity and BPF with all of the corresponding data
+                    // What I need is the stage itself. I can achive this by fetching OpportunitySalesProcess after.
 
-                    //    foreach (var prop in typeof(OpportunitySalesProcess).GetProperties())
-                    //    {
-                    //        if (!prop.CanRead || !prop.CanWrite || prop.GetIndexParameters().Length > 0)
-                    //            continue;
-
-                    //        if (prop.Name.Equals("OpportunitySalesProcessId") ||  // Primary Key
-                    //            prop.Name.StartsWith("Created") ||
-                    //            prop.Name.StartsWith("Modified") ||
-                    //            prop.Name == "EntityState" ||
-                    //            prop.Name == "StateCode" ||
-                    //            prop.Name == "StatusCode" ||
-                    //            prop.Name == "Attributes")
-                    //            continue;
-
-                    //        var val = prop.GetValue(originalBpf);
-                    //        if (val != null)
-                    //            prop.SetValue(clonedBpf, val);
-                    //    }
-
-                    //    // Step 3: Link to cloned Opportunity
-                    //    clonedBpf.OpportunityId = new EntityReference(Opportunity.EntityLogicalName, clonedId);
-
-                    //    // Step 4: Create the new BPF record
-                    //    var bpfId = service.Create(clonedBpf);
-                    //}
-
-                    var originalOpportunity = original.ToEntity<Opportunity>();
-                    // Copy stage progression fields
-                    var stageUpdate = new Opportunity
+                    // Fetch data from the original BPF
+                    string fetchOriginalXml = $@"
+                        <fetch top='1'>
+                          <entity name='opportunitysalesprocess'>
+                            <all-attributes />
+                            <filter>
+                              <condition attribute='opportunityid' operator='eq' value='{original.Id}' />
+                            </filter>
+                          </entity>
+                        </fetch>";
+                    var originalBPF = service.RetrieveMultiple(new FetchExpression(fetchOriginalXml));
+                    // Fetch data from the clone BPF
+                    string fetchClonedXml = $@"
+                        <fetch top='1'>
+                          <entity name='opportunitysalesprocess'>
+                            <all-attributes />
+                            <filter>
+                              <condition attribute='opportunityid' operator='eq' value='{clonedId}' />
+                            </filter>
+                          </entity>
+                        </fetch>";
+                    var clonedBPF = service.RetrieveMultiple(new FetchExpression(fetchClonedXml));
+                    //tracing.Trace(originalBPF.Entities.Count.ToString());
+                    //tracing.Trace(clonedBPF.Entities.Count.ToString());
+                    // Update the clonedBPF with originalBPF
+                    if (originalBPF.Entities.Count > 0)
                     {
-                        Id = clonedId,
-                        ProcessId = originalOpportunity.ProcessId,
-                        StageId = originalOpportunity.StageId,
-                        TraversedPath = originalOpportunity.TraversedPath
-                    };
-                    service.Update(stageUpdate);
-                    tracing.Trace("BPF stage progression cloned.");
+                        OpportunitySalesProcess originalBPFType = originalBPF.Entities[0].ToEntity<OpportunitySalesProcess>();
+                        OpportunitySalesProcess clonedBPFType = clonedBPF.Entities[0].ToEntity<OpportunitySalesProcess>();
+                        var clonedAccount = new OpportunitySalesProcess
+                        {
+                            Id = clonedBPFType.Id,
+                            ProcessId = originalBPFType.ProcessId,
+                            //StageId = originalBPFType.StageId,
+                            TraversedPath = originalBPFType.TraversedPath
+                            // Missing the complete option called Active Stage
+                        };
+                        service.Update(clonedAccount);
+                    }
+
+
+                    //
+                    //string fetchOriginalLeadOpportunityXml = $@"
+                    //    <fetch top='1'>
+                    //      <entity name='leadtoopportunitysalesprocess'>
+                    //        <all-attributes />
+                    //        <filter>
+                    //          <condition attribute='opportunityid' operator='eq' value='{original.Id}' />
+                    //        </filter>
+                    //      </entity>
+                    //    </fetch>";
+                    //Entity originalBPFLeadOpportunityType = service.RetrieveMultiple(new FetchExpression(fetchOriginalLeadOpportunityXml)).Entities[0];
+                    //tracing.Trace("Clone ID from fetch: {0}", originalBPFLeadOpportunityType.Id.ToString());
+                    ////var originalBPFLeadOpportunityType = originalBPFLeadOpportunity.Entities[0].ToEntity<LeadToOpportunitySalesProcess>();
+                    //var cloneBPFLeadOpportunity = new LeadToOpportunitySalesProcess();
+                    ////tracing.Trace("Breaker 1");
+                    //var leadProps = typeof(LeadToOpportunitySalesProcess).GetProperties();
+                    //foreach (var prop in leadProps)
+                    //{
+                    //    if (!prop.CanRead || !prop.CanWrite || prop.GetIndexParameters().Length > 0)
+                    //        continue;
+                    //    if (prop.Name == "businessprocessflowinstanceid" || // Primary key
+                    //        prop.Name.StartsWith("Created") ||
+                    //        prop.Name.StartsWith("Modified") ||
+                    //        prop.Name == "EntityState" ||
+                    //        prop.Name == "StateCode" ||
+                    //        prop.Name == "StatusCode" ||
+                    //        prop.Name == "Attributes")
+                    //        continue;
+                    //    var val = prop.GetValue(originalBPFLeadOpportunityType);
+                    //    if (val != null)
+                    //        prop.SetValue(cloneBPFLeadOpportunity, val);
+                    //}
+                    //var clonedd= service.Create(clone);
+                    //tracing.Trace("After create clone: {0}", clonedd);
+
+                    //tracing.Trace("Breaker 2");
+                    //// Step 3: Link to the new Opportunity
+                    //cloneBPFLeadOpportunity.OpportunityId = new EntityReference("opportunity", clonedId);
+                    //tracing.Trace("Breaker 3");
+                    //// Step 4: Create new BPF record
+                    //Guid newBpfId = service.Create(cloneBPFLeadOpportunity);
+                    //tracing.Trace("Value Lead BPF: {0}", newBpfId);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
                     //// Set the output parameter as "success" once completed
                     ////context.OutputParameters["output"] = "success";

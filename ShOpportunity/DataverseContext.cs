@@ -10,7 +10,7 @@
 
 [assembly: Microsoft.Xrm.Sdk.Client.ProxyTypesAssemblyAttribute()]
 
-namespace SalesConfigurationPlugins
+namespace ShPlugins
 {
 	
 	
@@ -29,13 +29,24 @@ namespace SalesConfigurationPlugins
 		}
 		
 		/// <summary>
-		/// Gets a binding to the set of all <see cref="SalesConfigurationPlugins.Opportunity"/> entities.
+		/// Gets a binding to the set of all <see cref="ShPlugins.Opportunity"/> entities.
 		/// </summary>
-		public System.Linq.IQueryable<SalesConfigurationPlugins.Opportunity> OpportunitySet
+		public System.Linq.IQueryable<ShPlugins.Opportunity> OpportunitySet
 		{
 			get
 			{
-				return this.CreateQuery<SalesConfigurationPlugins.Opportunity>();
+				return this.CreateQuery<ShPlugins.Opportunity>();
+			}
+		}
+		
+		/// <summary>
+		/// Gets a binding to the set of all <see cref="ShPlugins.OpportunitySalesProcess"/> entities.
+		/// </summary>
+		public System.Linq.IQueryable<ShPlugins.OpportunitySalesProcess> OpportunitySalesProcessSet
+		{
+			get
+			{
+				return this.CreateQuery<ShPlugins.OpportunitySalesProcess>();
 			}
 		}
 	}

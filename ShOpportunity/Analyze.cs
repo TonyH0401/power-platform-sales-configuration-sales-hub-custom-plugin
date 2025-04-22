@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace SalesConfigurationPlugins
+namespace ShPlugins
 {
 	
 	
@@ -102,7 +102,7 @@ namespace SalesConfigurationPlugins
 			}
 			set
 			{
-				this.Results["Response"] = value;
+				this.Results["response"] = value;
 			}
 		}
 	}

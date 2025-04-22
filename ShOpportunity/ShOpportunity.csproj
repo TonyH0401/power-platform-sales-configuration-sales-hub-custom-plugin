@@ -113,10 +113,12 @@
     <Compile Include="DataverseContext.cs" />
     <Compile Include="EntityOptionSetEnum.cs" />
     <Compile Include="InitialCommunication.cs" />
+    <Compile Include="LeadToOpportunitySalesProcess.cs" />
     <Compile Include="Msdyn_OpportunityGradeOptSet.cs" />
     <Compile Include="Msdyn_OpportunityScoreTrendOptSet.cs" />
     <Compile Include="Need.cs" />
     <Compile Include="Opportunity.cs" />
+    <Compile Include="OpportunitySalesProcess.cs" />
     <Compile Include="Opportunity_SalesStage.cs" />
     <Compile Include="PurchaseProcess.cs" />
     <Compile Include="PurchaseTimeFrame.cs" />

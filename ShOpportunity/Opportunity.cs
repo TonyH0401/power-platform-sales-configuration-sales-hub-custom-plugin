@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace SalesConfigurationPlugins
+namespace ShPlugins
 {
 	
 	
@@ -247,6 +247,7 @@ namespace SalesConfigurationPlugins
 			public const string IsRevenueSystemCalculated = "isrevenuesystemcalculated";
 			public const string IsRevenueSystemCalculatedName = "isrevenuesystemcalculatedname";
 			public const string LastOnHoldTime = "lastonholdtime";
+			public const string Lk_OpportunitySalesProcess_OpportunityId = "Lk_OpportunitySalesProcess_OpportunityId";
 			public const string ModifiedBy = "modifiedby";
 			public const string ModifiedByName = "modifiedbyname";
 			public const string ModifiedByYomiName = "modifiedbyyominame";
@@ -3587,6 +3588,24 @@ namespace SalesConfigurationPlugins
 			get
 			{
 				return this.GetAttributeValue<System.Nullable<long>>("versionnumber");
+			}
+		}
+		
+		/// <summary>
+		/// 1:N lk_opportunitysalesprocess_opportunityid
+		/// </summary>
+		[Microsoft.Xrm.Sdk.RelationshipSchemaNameAttribute("lk_opportunitysalesprocess_opportunityid")]
+		public System.Collections.Generic.IEnumerable<ShPlugins.OpportunitySalesProcess> Lk_OpportunitySalesProcess_OpportunityId
+		{
+			[System.Diagnostics.DebuggerNonUserCode()]
+			get
+			{
+				return this.GetRelatedEntities<ShPlugins.OpportunitySalesProcess>("lk_opportunitysalesprocess_opportunityid", null);
+			}
+			[System.Diagnostics.DebuggerNonUserCode()]
+			set
+			{
+				this.SetRelatedEntities<ShPlugins.OpportunitySalesProcess>("lk_opportunitysalesprocess_opportunityid", null, value);
 			}
 		}
 		
