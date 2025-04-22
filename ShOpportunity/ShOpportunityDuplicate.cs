@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Query;
+using Microsoft.Xrm.Sdk.Messages;
 using ShPlugins;
 using System;
 using System.ServiceModel;
@@ -113,46 +114,46 @@ namespace ShOpportunity
                     //// Set the output parameter as "success" once completed
                     ////context.OutputParameters["output"] = "success";
 
-                    //// Get the contacts associate with the original account
-                    //var fetchXml = $@"
-                    //        <fetch>
-                    //          <entity name='crff8_sccontact'>
-                    //            <link-entity name='crff8_sccontact_crff8_scaccount' from='crff8_sccontactid' to='crff8_sccontactid' intersect='true'>
-                    //              <filter>
-                    //                <condition attribute='crff8_scaccountid' operator='eq' value='{entityRefGUID}' />
-                    //              </filter>
-                    //            </link-entity>
-                    //          </entity>
-                    //        </fetch>";
-                    //var contacts = service.RetrieveMultiple(new FetchExpression(fetchXml));
-                    ////tracing.Trace("Counter: {0}", contacts.Entities.Count.ToString());
-                    //tracing.Trace("Verify getting contacts");
+                    // Get the contacts associate with the original account
+                    var fetchXml = $@"
+                            <fetch>
+                              <entity name='crff8_stakeholder'>
+                                <link-entity name='crff8_stakeholder_opportunity' from='crff8_stakeholderid' to='crff8_stakeholderid' intersect='true'>
+                                  <filter>
+                                    <condition attribute='opportunityid' operator='eq' value='{entityRefGUID}' />
+                                  </filter>
+                                </link-entity>
+                              </entity>
+                            </fetch>";
+                    var contacts = service.RetrieveMultiple(new FetchExpression(fetchXml));
+                    //tracing.Trace("Counter: {0}", contacts.Entities.Count.ToString());
+                    tracing.Trace("Verify getting contacts");
 
-                    //// For each contact add the associate to the clone one
-                    //foreach (var contact in contacts.Entities)
-                    //{
-                    //    var associateRequest = new AssociateRequest
-                    //    {
-                    //        Target = new EntityReference("crff8_scaccount", clonedId),
-                    //        RelatedEntities = new EntityReferenceCollection
-                    //        {
-                    //            new EntityReference("crff8_sccontact", contact.Id)
-                    //        },
-                    //        Relationship = new Relationship("crff8_SCContact_crff8_SCAccount_crff8_SCAccount")
-                    //    };
-                    //    service.Execute(associateRequest);
+                    // For each contact add the associate to the clone one
+                    foreach (var contact in contacts.Entities)
+                    {
+                        var associateRequest = new AssociateRequest
+                        {
+                            Target = new EntityReference("opportunity", clonedId),
+                            RelatedEntities = new EntityReferenceCollection
+                            {
+                                new EntityReference("crff8_stakeholder", contact.Id)
+                            },
+                            Relationship = new Relationship("crff8_Stakeholder_Opportunity_Opportunity")
+                        };
+                        service.Execute(associateRequest);
 
-                    //    //var disassociateRequest = new DisassociateRequest
-                    //    //{
-                    //    //    Target = new EntityReference("crff8_scaccount", entityRefGUID),
-                    //    //    RelatedEntities = new EntityReferenceCollection
-                    //    //    {
-                    //    //        new EntityReference("crff8_sccontact", contact.Id)
-                    //    //    },
-                    //    //    Relationship = new Relationship("crff8_SCContact_crff8_SCAccount_crff8_SCAccount")
-                    //    //};
-                    //    //service.Execute(disassociateRequest);
-                    //}
+                        //var disassociateRequest = new DisassociateRequest
+                        //{
+                        //    Target = new EntityReference("crff8_scaccount", entityRefGUID),
+                        //    RelatedEntities = new EntityReferenceCollection
+                        //    {
+                        //        new EntityReference("crff8_sccontact", contact.Id)
+                        //    },
+                        //    Relationship = new Relationship("crff8_SCContact_crff8_SCAccount_crff8_SCAccount")
+                        //};
+                        //service.Execute(disassociateRequest);
+                    }
 
                     // Set the output parameter as "success" once completed
                     //context.OutputParameters["output"] = "success";

@@ -110,6 +110,7 @@
     <Compile Include="Analyze.cs" />
     <Compile Include="AnalyzeSentiment.cs" />
     <Compile Include="BudgetStatus.cs" />
+    <Compile Include="CRfF8_Stakeholder.cs" />
     <Compile Include="DataverseContext.cs" />
     <Compile Include="EntityOptionSetEnum.cs" />
     <Compile Include="InitialCommunication.cs" />

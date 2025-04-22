@@ -29,6 +29,17 @@ namespace ShPlugins
 		}
 		
 		/// <summary>
+		/// Gets a binding to the set of all <see cref="ShPlugins.CRfF8_Stakeholder"/> entities.
+		/// </summary>
+		public System.Linq.IQueryable<ShPlugins.CRfF8_Stakeholder> CRfF8_StakeholderSet
+		{
+			get
+			{
+				return this.CreateQuery<ShPlugins.CRfF8_Stakeholder>();
+			}
+		}
+		
+		/// <summary>
 		/// Gets a binding to the set of all <see cref="ShPlugins.LeadToOpportunitySalesProcess"/> entities.
 		/// </summary>
 		public System.Linq.IQueryable<ShPlugins.LeadToOpportunitySalesProcess> LeadToOpportunitySalesProcessSet
