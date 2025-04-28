@@ -44,7 +44,8 @@ namespace ShOpportunity
                              prop.Name != "CustomerId" &&
                              prop.Name != "ParentContactId" &&
                              prop.Name != "ParentAccountId" &&
-                             prop.Name != "OwnerId") ||
+                             prop.Name != "OwnerId" && 
+                             prop.Name != "TransactionCurrencyId" && prop.Name != "PriceLevelId") ||
                             prop.Name.StartsWith("Created", StringComparison.OrdinalIgnoreCase) ||
                             prop.Name.StartsWith("Modified", StringComparison.OrdinalIgnoreCase) ||
                             prop.Name == "OpportunityId" ||
