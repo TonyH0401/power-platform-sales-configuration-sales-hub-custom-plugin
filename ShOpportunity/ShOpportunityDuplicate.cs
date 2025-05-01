@@ -44,7 +44,7 @@ namespace ShOpportunity
                              prop.Name != "CustomerId" &&
                              prop.Name != "ParentContactId" &&
                              prop.Name != "ParentAccountId" &&
-                             prop.Name != "OwnerId" && 
+                             prop.Name != "OwnerId" &&
                              prop.Name != "TransactionCurrencyId" && prop.Name != "PriceLevelId") ||
                             prop.Name.StartsWith("Created", StringComparison.OrdinalIgnoreCase) ||
                             prop.Name.StartsWith("Modified", StringComparison.OrdinalIgnoreCase) ||
@@ -67,6 +67,63 @@ namespace ShOpportunity
                     clone.Name = "[Cloned] " + clone.Name;
                     var clonedId = service.Create(clone);
                     tracing.Trace("Verify cloning Opportunity completed: {0}", clonedId);
+
+                    // 🔽 START CLONE PRODUCTS
+                    // Clone the Opportunity Products using FetchXML
+                    string fetchProductsXml = $@"
+                        <fetch>
+                          <entity name='opportunityproduct'>
+                            <all-attributes />
+                            <filter>
+                              <condition attribute='opportunityid' operator='eq' value='{original.Id}' />
+                            </filter>
+                          </entity>
+                        </fetch>";
+                    var originalProducts = service.RetrieveMultiple(new FetchExpression(fetchProductsXml));
+                    if (originalProducts.Entities.Count == 0)
+                    {
+                        tracing.Trace("No products found on original opportunity. Skipping product cloning.");
+                    }
+                    else
+                    {
+
+                        tracing.Trace("Cloning {0} opportunity products...", originalProducts.Entities.Count);
+                        // Loop through and clone each product
+                        foreach (var product in originalProducts.Entities)
+                        {
+                            Entity clonedProduct = new Entity("opportunityproduct");
+
+                            foreach (var attr in product.Attributes)
+                            {
+                                // Skip fields that should not be copied
+                                if (attr.Key == "opportunityid" ||
+                                    attr.Key.EndsWith("id") && attr.Key != "uomid" && attr.Key != "productid")
+                                    continue;
+
+                                if (attr.Key.StartsWith("created") ||
+                                    attr.Key.StartsWith("modified") ||
+                                    attr.Key == "opportunityproductid" ||
+                                    attr.Key == "entityimage" ||
+                                    attr.Key == "entityimage_timestamp")
+                                    continue;
+
+                                clonedProduct[attr.Key] = attr.Value;
+                            }
+                            // Set the new Opportunity reference
+                            clonedProduct["opportunityid"] = new EntityReference("opportunity", clonedId);
+                            // Let system recalculate totals; remove calculated fields if needed
+                            string[] calcFields = { "baseamount", "extendedamount", "tax", "manualdiscountamount" };
+                            foreach (var field in calcFields)
+                            {
+                                if (clonedProduct.Attributes.Contains(field))
+                                    clonedProduct.Attributes.Remove(field);
+                            }
+
+                            service.Create(clonedProduct);
+                        }
+                        tracing.Trace("Finished cloning opportunity products");
+                    }
+                    // END CLONE PRODUCTS
 
 
                     // This process is enough, it has already created Opportunity and BPF with all of the corresponding data
