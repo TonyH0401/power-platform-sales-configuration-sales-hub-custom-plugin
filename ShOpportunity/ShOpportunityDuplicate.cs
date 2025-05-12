@@ -227,7 +227,7 @@ namespace ShOpportunity
                     // Set the output parameter as "success" once completed
                     //context.OutputParameters["output"] = "success";
                     context.OutputParameters["output"] = clonedId.ToString();
-                    tracing.Trace(context.OutputParameters["output"].ToString());
+                    tracing.Trace("plugin> MainExecution - Opportunity cloning process completed - Cloned opportunity output GUID: {0}", context.OutputParameters["output"].ToString());
                 }
             }
             catch (FaultException<OrganizationServiceFault> ex)
@@ -360,7 +360,10 @@ namespace ShOpportunity
                 // ==========================
                 AssociateStakeholderOpportunity(service, tracing, originalOpportunity.Id, clonedId);
 
-
+                // ==========================
+                // Verify opportunity clone process is completed and return cloned opportunity id.
+                // ==========================
+                tracing.Trace("plugin> CloneOpportunity - The opportunity cloning process has been completed: {0}", clonedId);
                 return clonedId;
             }
             catch (FaultException<OrganizationServiceFault> ex)
