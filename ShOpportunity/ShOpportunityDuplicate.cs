@@ -11,7 +11,7 @@ namespace ShOpportunity
     {
         public void Execute(IServiceProvider serviceProvider)
         {
-            // Initiate context, service and tracing.
+            // Initiate "context", "service" and "tracing".
             IPluginExecutionContext context = (IPluginExecutionContext)serviceProvider.GetService(typeof(IPluginExecutionContext));
             IOrganizationServiceFactory serviceFactory = (IOrganizationServiceFactory)serviceProvider.GetService(typeof(IOrganizationServiceFactory));
             IOrganizationService service = serviceFactory.CreateOrganizationService(context.UserId);
@@ -21,6 +21,8 @@ namespace ShOpportunity
             {
                 // Trace log to verify plugin is running (before context variable).
                 tracing.Trace("> Verify plugin is running: ShOpportunityDuplicate");
+                // Check for "Target" variable and check for "Target" type is "EntityReference" before plugin begin to run.
+                // This uses "Target" because the plugin is linked to a Bound Custom Action, "Target" is generated automatically.
                 if (context.InputParameters.Contains("Target") && context.InputParameters["Target"] is EntityReference)
                 {
                     // Plugin is activated using Custom Action, so 'EntityReference' is used
