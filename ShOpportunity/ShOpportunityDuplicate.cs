@@ -343,6 +343,16 @@ namespace ShOpportunity
                 // ==========================
                 CloneAndAssociateOpportunityProducts(service, tracing, originalOpportunity, clonedId);
 
+                /*
+                 * At this point, this process is enough, a cloned "Opportunity" has already created and due to how the "Opportunity" is bound to the BPF, 
+                 * a BPF for the "Opportunity" with all of the corresponding data is also created.
+                 * What I need is the stage indication for the BPF itself. I can achieve this by fetching the "OpportunitySalesProcess" data after.
+                 */
+
+                // ==========================
+                // Update/Clone stage indications from the original opportunity BPF for the cloned opportunity BPF.
+                // ==========================
+                CloneOpportunityBpfStageIndicators(service, tracing, originalOpportunity, clonedId);
 
 
                 return clonedId;
@@ -416,7 +426,7 @@ namespace ShOpportunity
                         // Create the cloned opportunity products.
                         service.Create(clonedProduct);
                     }
-                    tracing.Trace("plugin> CloneAndAssociateOpportunityProducts - Finished cloning and associating opportunity products");
+                    tracing.Trace("plugin> CloneAndAssociateOpportunityProducts - Finished cloning and associating opportunity products.");
                 }
             }
             catch (FaultException<OrganizationServiceFault> ex)
@@ -430,6 +440,62 @@ namespace ShOpportunity
                 throw new InvalidPluginExecutionException("CloneAndAssociateOpportunityProducts - Unexpected Error", ex);
             }
 
+        }
+
+        public void CloneOpportunityBpfStageIndicators(IOrganizationService service, ITracingService tracing, Entity originalOpportunity, Guid clonedOpportunityId)
+        {
+            try
+            {
+                // Fetch data from the original opportunity BPF with stage indication.
+                string fetchOriginalXml = $@"
+                <fetch top='1'>
+                  <entity name='opportunitysalesprocess'>
+                    <all-attributes />
+                    <filter>
+                      <condition attribute='opportunityid' operator='eq' value='{originalOpportunity.Id}' />
+                    </filter>
+                  </entity>
+                </fetch>";
+                var originalBPF = service.RetrieveMultiple(new FetchExpression(fetchOriginalXml));
+                // Fetch data from the clone opportunity BPF.
+                string fetchClonedXml = $@"
+                <fetch top='1'>
+                  <entity name='opportunitysalesprocess'>
+                    <all-attributes />
+                    <filter>
+                      <condition attribute='opportunityid' operator='eq' value='{clonedOpportunityId}' />
+                    </filter>
+                  </entity>
+                </fetch>";
+                var clonedBPF = service.RetrieveMultiple(new FetchExpression(fetchClonedXml));
+                // Update the cloned opportunity BPF with the stage indication from the original opportunity BPF.
+                if (originalBPF.Entities.Count > 0)
+                {
+                    OpportunitySalesProcess originalBPFType = originalBPF.Entities[0].ToEntity<OpportunitySalesProcess>();
+                    OpportunitySalesProcess clonedBPFType = clonedBPF.Entities[0].ToEntity<OpportunitySalesProcess>();
+                    var clonedStageProcess = new OpportunitySalesProcess
+                    {
+                        Id = clonedBPFType.Id,
+                        ProcessId = originalBPFType.ProcessId,
+                        TraversedPath = originalBPFType.TraversedPath
+                        //StageId = originalBPFType.StageId, // There isn't any properties called "StageId".
+                        // Missing the complete option for BPF called ActiveStageId and State/Status.
+                    };
+                    // Update the cloned opportunity BPF with the stage indication from the original BPF.
+                    service.Update(clonedStageProcess);
+                    tracing.Trace("plugin> CloneOpportunityBpfStageIndicators - Finished updating stage indications for cloned opportunity BPF.");
+                }
+            }
+            catch (FaultException<OrganizationServiceFault> ex)
+            {
+                tracing.Trace("plugin> CloneOpportunityBpfStageIndicators - Fault Exception Code: {0} - Message: {1}", ex.Detail.ErrorCode, ex.Detail.Message);
+                throw new InvalidPluginExecutionException("CloneOpportunityBpfStageIndicators - Fault Exception", ex);
+            }
+            catch (Exception ex)
+            {
+                tracing.Trace("plugin> CloneOpportunityBpfStageIndicators - Unexpected Error: {0}", ex.Message.ToString());
+                throw new InvalidPluginExecutionException("CloneOpportunityBpfStageIndicators - Unexpected Error", ex);
+            }
         }
     }
 }
