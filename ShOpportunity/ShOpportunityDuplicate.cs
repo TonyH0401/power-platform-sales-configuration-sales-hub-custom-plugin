@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Query;
 using ShPlugins;
 using System;
@@ -354,6 +355,11 @@ namespace ShOpportunity
                 // ==========================
                 CloneOpportunityBpfStageIndicators(service, tracing, originalOpportunity, clonedId);
 
+                // ==========================
+                // Associate stakeholders with cloned opportunity.
+                // ==========================
+                AssociateStakeholderOpportunity(service, tracing, originalOpportunity.Id, clonedId);
+
 
                 return clonedId;
             }
@@ -495,6 +501,63 @@ namespace ShOpportunity
             {
                 tracing.Trace("plugin> CloneOpportunityBpfStageIndicators - Unexpected Error: {0}", ex.Message.ToString());
                 throw new InvalidPluginExecutionException("CloneOpportunityBpfStageIndicators - Unexpected Error", ex);
+            }
+        }
+
+        public void AssociateStakeholderOpportunity(IOrganizationService service, ITracingService tracing, Guid originalId, Guid clonedId)
+        {
+            try
+            {
+                // Get stakeholders associated with the original opportunity via FetchXML.
+                var fetchXml = $@"
+                    <fetch>
+                      <entity name='crff8_stakeholder'>
+                        <link-entity name='crff8_stakeholder_opportunity' from='crff8_stakeholderid' to='crff8_stakeholderid' intersect='true'>
+                          <filter>
+                            <condition attribute='opportunityid' operator='eq' value='{originalId}' />
+                          </filter>
+                        </link-entity>
+                      </entity>
+                    </fetch>";
+                var stakeholders = service.RetrieveMultiple(new FetchExpression(fetchXml));
+                tracing.Trace("plugin> AssociateStakeholderOpportunity - Verify {0} stakeholders retrieved.", stakeholders.Entities.Count.ToString());
+                // For each stakeholder, associate it to the cloned opportunity.
+                foreach (var stakeholder in stakeholders.Entities)
+                {
+                    var associateRequest = new AssociateRequest
+                    {
+                        Target = new EntityReference("opportunity", clonedId),
+                        RelatedEntities = new EntityReferenceCollection
+                    {
+                        new EntityReference("crff8_stakeholder", stakeholder.Id)
+                    },
+                        Relationship = new Relationship("crff8_Stakeholder_Opportunity_Opportunity")
+                    };
+                    // Perform the association between the stakeholder and cloned opportunity.
+                    service.Execute(associateRequest);
+
+                    //var disassociateRequest = new DisassociateRequest
+                    //{
+                    //    Target = new EntityReference("crff8_scaccount", entityRefGUID),
+                    //    RelatedEntities = new EntityReferenceCollection
+                    //    {
+                    //        new EntityReference("crff8_sccontact", contact.Id)
+                    //    },
+                    //    Relationship = new Relationship("crff8_SCContact_crff8_SCAccount_crff8_SCAccount")
+                    //};
+                    //service.Execute(disassociateRequest);
+                }
+                tracing.Trace("plugin> AssociateStakeholderOpportunity - Verify associating stakeholders with cloned opportunity completed.");
+            }
+            catch (FaultException<OrganizationServiceFault> ex)
+            {
+                tracing.Trace("plugin> AssociateStakeholderOpportunity - Fault Exception Code: {0} - Message: {1}", ex.Detail.ErrorCode, ex.Detail.Message);
+                throw new InvalidPluginExecutionException("AssociateStakeholderOpportunity - Fault Exception", ex);
+            }
+            catch (Exception ex)
+            {
+                tracing.Trace("plugin> AssociateStakeholderOpportunity - Unexpected Error: {0}", ex.Message.ToString());
+                throw new InvalidPluginExecutionException("AssociateStakeholderOpportunity - Unexpected Error", ex);
             }
         }
     }
