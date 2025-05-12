@@ -1,5 +1,4 @@
 ﻿using Microsoft.Xrm.Sdk;
-using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Query;
 using ShPlugins;
 using System;
@@ -34,189 +33,195 @@ namespace ShOpportunity
                     Guid entityRefGUID = entityRef.Id;
                     // Use "RetrieveOriginalOpportunity" to retrieve the full "Opportunity" data based on the "Opportunity" GUID.
                     Entity original = RetrieveOriginalOpportunity(service, tracing, entityRefLogicalName, entityRefGUID);
+                    // Cloning "Opportunity" process.
+                    var clonedId = CloneOpportunity(service, tracing, original);
 
-                    // Cloning process
-                    var clone = new Opportunity();
-                    var props = typeof(Opportunity).GetProperties();
-                    foreach (var prop in props)
-                    {
-                        if (!prop.CanWrite ||
-                            !prop.CanRead ||
-                            prop.GetIndexParameters().Length > 0)
-                            continue;
-                        if ((prop.Name.EndsWith("Id", StringComparison.OrdinalIgnoreCase) &&
-                             prop.Name != "CustomerId" &&
-                             prop.Name != "ParentContactId" &&
-                             prop.Name != "ParentAccountId" &&
-                             prop.Name != "OwnerId" &&
-                             prop.Name != "TransactionCurrencyId" && prop.Name != "PriceLevelId") ||
-                            prop.Name.StartsWith("Created", StringComparison.OrdinalIgnoreCase) ||
-                            prop.Name.StartsWith("Modified", StringComparison.OrdinalIgnoreCase) ||
-                            prop.Name == "OpportunityId" ||
-                            prop.Name == "EntityState" ||
-                            prop.Name == "StateCode" ||
-                            prop.Name == "StatusCode" ||
-                            prop.Name == "Attributes")
-                            continue;
 
-                        // Use this for debugging which attribute is duplicate
-                        //tracing.Trace("Value: {0}", prop.Name.ToString());
 
-                        var value = prop.GetValue(original);
-                        if (value != null)
-                        {
-                            prop.SetValue(clone, value);
-                        }
-                    }
-                    clone.Name = "[Cloned] " + clone.Name;
-                    var clonedId = service.Create(clone);
-                    tracing.Trace("Verify cloning Opportunity completed: {0}", clonedId);
 
-                    // 🔽 START CLONE PRODUCTS
-                    // Clone the Opportunity Products using FetchXML
-                    string fetchProductsXml = $@"
-                        <fetch>
-                          <entity name='opportunityproduct'>
-                            <all-attributes />
-                            <filter>
-                              <condition attribute='opportunityid' operator='eq' value='{original.Id}' />
-                            </filter>
-                          </entity>
-                        </fetch>";
-                    var originalProducts = service.RetrieveMultiple(new FetchExpression(fetchProductsXml));
-                    if (originalProducts.Entities.Count == 0)
-                    {
-                        tracing.Trace("No products found on original opportunity. Skipping product cloning.");
-                    }
-                    else
-                    {
 
-                        tracing.Trace("Cloning {0} opportunity products...", originalProducts.Entities.Count);
-                        // Loop through and clone each product
-                        foreach (var product in originalProducts.Entities)
-                        {
-                            Entity clonedProduct = new Entity("opportunityproduct");
+                    //// Cloning process
+                    //var clone = new Opportunity();
+                    //var props = typeof(Opportunity).GetProperties();
+                    //foreach (var prop in props)
+                    //{
+                    //    if (!prop.CanWrite ||
+                    //        !prop.CanRead ||
+                    //        prop.GetIndexParameters().Length > 0)
+                    //        continue;
+                    //    if ((prop.Name.EndsWith("Id", StringComparison.OrdinalIgnoreCase) &&
+                    //         prop.Name != "CustomerId" &&
+                    //         prop.Name != "ParentContactId" &&
+                    //         prop.Name != "ParentAccountId" &&
+                    //         prop.Name != "OwnerId" &&
+                    //         prop.Name != "TransactionCurrencyId" && prop.Name != "PriceLevelId") ||
+                    //        prop.Name.StartsWith("Created", StringComparison.OrdinalIgnoreCase) ||
+                    //        prop.Name.StartsWith("Modified", StringComparison.OrdinalIgnoreCase) ||
+                    //        prop.Name == "OpportunityId" ||
+                    //        prop.Name == "EntityState" ||
+                    //        prop.Name == "StateCode" ||
+                    //        prop.Name == "StatusCode" ||
+                    //        prop.Name == "Attributes")
+                    //        continue;
 
-                            foreach (var attr in product.Attributes)
-                            {
-                                // Skip fields that should not be copied
-                                if (attr.Key == "opportunityid" ||
-                                    attr.Key.EndsWith("id") && attr.Key != "uomid" && attr.Key != "productid")
-                                    continue;
+                    //    // Use this for debugging which attribute is duplicate
+                    //    //tracing.Trace("Value: {0}", prop.Name.ToString());
 
-                                if (attr.Key.StartsWith("created") ||
-                                    attr.Key.StartsWith("modified") ||
-                                    attr.Key == "opportunityproductid" ||
-                                    attr.Key == "entityimage" ||
-                                    attr.Key == "entityimage_timestamp")
-                                    continue;
+                    //    var value = prop.GetValue(original);
+                    //    if (value != null)
+                    //    {
+                    //        prop.SetValue(clone, value);
+                    //    }
+                    //}
+                    //clone.Name = "[Cloned] " + clone.Name;
+                    //var clonedId = service.Create(clone);
+                    //tracing.Trace("Verify cloning Opportunity completed: {0}", clonedId);
 
-                                clonedProduct[attr.Key] = attr.Value;
-                            }
-                            // Set the new Opportunity reference
-                            clonedProduct["opportunityid"] = new EntityReference("opportunity", clonedId);
-                            // Let system recalculate totals; remove calculated fields if needed
-                            string[] calcFields = { "baseamount", "extendedamount", "tax", "manualdiscountamount" };
-                            foreach (var field in calcFields)
-                            {
-                                if (clonedProduct.Attributes.Contains(field))
-                                    clonedProduct.Attributes.Remove(field);
-                            }
+                    //// 🔽 START CLONE PRODUCTS
+                    //// Clone the Opportunity Products using FetchXML
+                    //string fetchProductsXml = $@"
+                    //    <fetch>
+                    //      <entity name='opportunityproduct'>
+                    //        <all-attributes />
+                    //        <filter>
+                    //          <condition attribute='opportunityid' operator='eq' value='{original.Id}' />
+                    //        </filter>
+                    //      </entity>
+                    //    </fetch>";
+                    //var originalProducts = service.RetrieveMultiple(new FetchExpression(fetchProductsXml));
+                    //if (originalProducts.Entities.Count == 0)
+                    //{
+                    //    tracing.Trace("No products found on original opportunity. Skipping product cloning.");
+                    //}
+                    //else
+                    //{
 
-                            service.Create(clonedProduct);
-                        }
-                        tracing.Trace("Finished cloning opportunity products");
-                    }
-                    // END CLONE PRODUCTS
+                    //    tracing.Trace("Cloning {0} opportunity products...", originalProducts.Entities.Count);
+                    //    // Loop through and clone each product
+                    //    foreach (var product in originalProducts.Entities)
+                    //    {
+                    //        Entity clonedProduct = new Entity("opportunityproduct");
+
+                    //        foreach (var attr in product.Attributes)
+                    //        {
+                    //            // Skip fields that should not be copied
+                    //            if (attr.Key == "opportunityid" ||
+                    //                attr.Key.EndsWith("id") && attr.Key != "uomid" && attr.Key != "productid")
+                    //                continue;
+
+                    //            if (attr.Key.StartsWith("created") ||
+                    //                attr.Key.StartsWith("modified") ||
+                    //                attr.Key == "opportunityproductid" ||
+                    //                attr.Key == "entityimage" ||
+                    //                attr.Key == "entityimage_timestamp")
+                    //                continue;
+
+                    //            clonedProduct[attr.Key] = attr.Value;
+                    //        }
+                    //        // Set the new Opportunity reference
+                    //        clonedProduct["opportunityid"] = new EntityReference("opportunity", clonedId);
+                    //        // Let system recalculate totals; remove calculated fields if needed
+                    //        string[] calcFields = { "baseamount", "extendedamount", "tax", "manualdiscountamount" };
+                    //        foreach (var field in calcFields)
+                    //        {
+                    //            if (clonedProduct.Attributes.Contains(field))
+                    //                clonedProduct.Attributes.Remove(field);
+                    //        }
+
+                    //        service.Create(clonedProduct);
+                    //    }
+                    //    tracing.Trace("Finished cloning opportunity products");
+                    //}
+                    //// END CLONE PRODUCTS
 
 
                     // This process is enough, it has already created Opportunity and BPF with all of the corresponding data
                     // What I need is the stage itself. I can achive this by fetching OpportunitySalesProcess after.
 
-                    // Fetch data from the original BPF
-                    string fetchOriginalXml = $@"
-                        <fetch top='1'>
-                          <entity name='opportunitysalesprocess'>
-                            <all-attributes />
-                            <filter>
-                              <condition attribute='opportunityid' operator='eq' value='{original.Id}' />
-                            </filter>
-                          </entity>
-                        </fetch>";
-                    var originalBPF = service.RetrieveMultiple(new FetchExpression(fetchOriginalXml));
-                    // Fetch data from the clone BPF
-                    string fetchClonedXml = $@"
-                        <fetch top='1'>
-                          <entity name='opportunitysalesprocess'>
-                            <all-attributes />
-                            <filter>
-                              <condition attribute='opportunityid' operator='eq' value='{clonedId}' />
-                            </filter>
-                          </entity>
-                        </fetch>";
-                    var clonedBPF = service.RetrieveMultiple(new FetchExpression(fetchClonedXml));
-                    //tracing.Trace(originalBPF.Entities.Count.ToString());
-                    //tracing.Trace(clonedBPF.Entities.Count.ToString());
-                    // Update the clonedBPF with originalBPF
-                    if (originalBPF.Entities.Count > 0)
-                    {
-                        OpportunitySalesProcess originalBPFType = originalBPF.Entities[0].ToEntity<OpportunitySalesProcess>();
-                        OpportunitySalesProcess clonedBPFType = clonedBPF.Entities[0].ToEntity<OpportunitySalesProcess>();
-                        var clonedAccount = new OpportunitySalesProcess
-                        {
-                            Id = clonedBPFType.Id,
-                            ProcessId = originalBPFType.ProcessId,
-                            //StageId = originalBPFType.StageId, // There isn't any properties called "StageId".
-                            TraversedPath = originalBPFType.TraversedPath
-                            // Missing the complete option called ActiveStageId and State/Status.
-                        };
-                        service.Update(clonedAccount);
-                    }
+                    //// Fetch data from the original BPF
+                    //string fetchOriginalXml = $@"
+                    //    <fetch top='1'>
+                    //      <entity name='opportunitysalesprocess'>
+                    //        <all-attributes />
+                    //        <filter>
+                    //          <condition attribute='opportunityid' operator='eq' value='{original.Id}' />
+                    //        </filter>
+                    //      </entity>
+                    //    </fetch>";
+                    //var originalBPF = service.RetrieveMultiple(new FetchExpression(fetchOriginalXml));
+                    //// Fetch data from the clone BPF
+                    //string fetchClonedXml = $@"
+                    //    <fetch top='1'>
+                    //      <entity name='opportunitysalesprocess'>
+                    //        <all-attributes />
+                    //        <filter>
+                    //          <condition attribute='opportunityid' operator='eq' value='{clonedId}' />
+                    //        </filter>
+                    //      </entity>
+                    //    </fetch>";
+                    //var clonedBPF = service.RetrieveMultiple(new FetchExpression(fetchClonedXml));
+                    ////tracing.Trace(originalBPF.Entities.Count.ToString());
+                    ////tracing.Trace(clonedBPF.Entities.Count.ToString());
+                    //// Update the clonedBPF with originalBPF
+                    //if (originalBPF.Entities.Count > 0)
+                    //{
+                    //    OpportunitySalesProcess originalBPFType = originalBPF.Entities[0].ToEntity<OpportunitySalesProcess>();
+                    //    OpportunitySalesProcess clonedBPFType = clonedBPF.Entities[0].ToEntity<OpportunitySalesProcess>();
+                    //    var clonedAccount = new OpportunitySalesProcess
+                    //    {
+                    //        Id = clonedBPFType.Id,
+                    //        ProcessId = originalBPFType.ProcessId,
+                    //        //StageId = originalBPFType.StageId, // There isn't any properties called "StageId".
+                    //        TraversedPath = originalBPFType.TraversedPath
+                    //        // Missing the complete option called ActiveStageId and State/Status.
+                    //    };
+                    //    service.Update(clonedAccount);
+                    //}
 
                     //// Set the output parameter as "success" once completed
                     ////context.OutputParameters["output"] = "success";
 
-                    // Get the contacts associate with the original account
-                    var fetchXml = $@"
-                            <fetch>
-                              <entity name='crff8_stakeholder'>
-                                <link-entity name='crff8_stakeholder_opportunity' from='crff8_stakeholderid' to='crff8_stakeholderid' intersect='true'>
-                                  <filter>
-                                    <condition attribute='opportunityid' operator='eq' value='{entityRefGUID}' />
-                                  </filter>
-                                </link-entity>
-                              </entity>
-                            </fetch>";
-                    var contacts = service.RetrieveMultiple(new FetchExpression(fetchXml));
-                    //tracing.Trace("Counter: {0}", contacts.Entities.Count.ToString());
-                    tracing.Trace("Verify getting contacts");
+                    //// Get the contacts associate with the original account
+                    //var fetchXml = $@"
+                    //        <fetch>
+                    //          <entity name='crff8_stakeholder'>
+                    //            <link-entity name='crff8_stakeholder_opportunity' from='crff8_stakeholderid' to='crff8_stakeholderid' intersect='true'>
+                    //              <filter>
+                    //                <condition attribute='opportunityid' operator='eq' value='{entityRefGUID}' />
+                    //              </filter>
+                    //            </link-entity>
+                    //          </entity>
+                    //        </fetch>";
+                    //var contacts = service.RetrieveMultiple(new FetchExpression(fetchXml));
+                    ////tracing.Trace("Counter: {0}", contacts.Entities.Count.ToString());
+                    //tracing.Trace("Verify getting contacts");
 
-                    // For each contact add the associate to the clone one
-                    foreach (var contact in contacts.Entities)
-                    {
-                        var associateRequest = new AssociateRequest
-                        {
-                            Target = new EntityReference("opportunity", clonedId),
-                            RelatedEntities = new EntityReferenceCollection
-                            {
-                                new EntityReference("crff8_stakeholder", contact.Id)
-                            },
-                            Relationship = new Relationship("crff8_Stakeholder_Opportunity_Opportunity")
-                        };
-                        service.Execute(associateRequest);
+                    //// For each contact add the associate to the clone one
+                    //foreach (var contact in contacts.Entities)
+                    //{
+                    //    var associateRequest = new AssociateRequest
+                    //    {
+                    //        Target = new EntityReference("opportunity", clonedId),
+                    //        RelatedEntities = new EntityReferenceCollection
+                    //        {
+                    //            new EntityReference("crff8_stakeholder", contact.Id)
+                    //        },
+                    //        Relationship = new Relationship("crff8_Stakeholder_Opportunity_Opportunity")
+                    //    };
+                    //    service.Execute(associateRequest);
 
-                        //var disassociateRequest = new DisassociateRequest
-                        //{
-                        //    Target = new EntityReference("crff8_scaccount", entityRefGUID),
-                        //    RelatedEntities = new EntityReferenceCollection
-                        //    {
-                        //        new EntityReference("crff8_sccontact", contact.Id)
-                        //    },
-                        //    Relationship = new Relationship("crff8_SCContact_crff8_SCAccount_crff8_SCAccount")
-                        //};
-                        //service.Execute(disassociateRequest);
-                    }
-                    tracing.Trace("Verify associate contacts with opportunity");
+                    //    //var disassociateRequest = new DisassociateRequest
+                    //    //{
+                    //    //    Target = new EntityReference("crff8_scaccount", entityRefGUID),
+                    //    //    RelatedEntities = new EntityReferenceCollection
+                    //    //    {
+                    //    //        new EntityReference("crff8_sccontact", contact.Id)
+                    //    //    },
+                    //    //    Relationship = new Relationship("crff8_SCContact_crff8_SCAccount_crff8_SCAccount")
+                    //    //};
+                    //    //service.Execute(disassociateRequest);
+                    //}
+                    //tracing.Trace("Verify associate contacts with opportunity");
 
                     // Set the output parameter as "success" once completed
                     //context.OutputParameters["output"] = "success";
@@ -333,9 +338,14 @@ namespace ShOpportunity
                 var clonedId = service.Create(clone);
                 tracing.Trace("plugin> CloneOpportunity - Opportunity cloned: {0}", clonedId);
 
+                // ==========================
+                // Clone and associate "Opportunity Product" process. Using late-bound.
+                // ==========================
+                CloneAndAssociateOpportunityProducts(service, tracing, originalOpportunity, clonedId);
 
 
-                return new Guid();
+
+                return clonedId;
             }
             catch (FaultException<OrganizationServiceFault> ex)
             {
@@ -349,8 +359,76 @@ namespace ShOpportunity
             }
         }
 
-        public void CloneAndAssociateOpportunityProducts(IOrganizationService service, ITracingService tracing)
+        public void CloneAndAssociateOpportunityProducts(IOrganizationService service, ITracingService tracing, Entity originalOpportunity, Guid clonedOpportunityId)
         {
+            try
+            {
+                // Retrieve Opportunity Products using FetchXML.
+                string fetchProductsXml = $@"
+                        <fetch>
+                          <entity name='opportunityproduct'>
+                            <all-attributes />
+                            <filter>
+                              <condition attribute='opportunityid' operator='eq' value='{originalOpportunity.Id}' />
+                            </filter>
+                          </entity>
+                        </fetch>";
+                var originalProducts = service.RetrieveMultiple(new FetchExpression(fetchProductsXml));
+                // Skip if there are no products. Proceed if there are products.
+                if (originalProducts.Entities.Count == 0)
+                {
+                    tracing.Trace("plugin> CloneAndAssociateOpportunityProducts - No products found on original Opportunity. Skipping product cloning.");
+                }
+                else
+                {
+
+                    tracing.Trace("plugin> CloneAndAssociateOpportunityProducts - {0} opportunity products found. Starting product cloning.", originalProducts.Entities.Count);
+                    // Loop through each prodcut and clone them.
+                    foreach (var product in originalProducts.Entities)
+                    {
+                        // Initiate a clone product variable.
+                        Entity clonedProduct = new Entity("opportunityproduct");
+                        // For each property, clone the value.
+                        foreach (var attr in product.Attributes)
+                        {
+                            // Skip fields that should not be copied.
+                            if (attr.Key == "opportunityid" ||
+                                attr.Key.EndsWith("id") && attr.Key != "uomid" && attr.Key != "productid")
+                                continue;
+                            if (attr.Key.StartsWith("created") ||
+                                attr.Key.StartsWith("modified") ||
+                                attr.Key == "opportunityproductid" ||
+                                attr.Key == "entityimage" ||
+                                attr.Key == "entityimage_timestamp")
+                                continue;
+                            // Assign the value of the corresponding property to the clone product.
+                            clonedProduct[attr.Key] = attr.Value;
+                        }
+                        // Set the reference to the newly cloned Opportunity for the newly cloned products. Because product-opportunity has one-many relationship.
+                        clonedProduct["opportunityid"] = new EntityReference("opportunity", clonedOpportunityId);
+                        // Let the system recalculate totals; remove calculated fields if needed.
+                        string[] calcFields = { "baseamount", "extendedamount", "tax", "manualdiscountamount" };
+                        foreach (var field in calcFields)
+                        {
+                            if (clonedProduct.Attributes.Contains(field))
+                                clonedProduct.Attributes.Remove(field);
+                        }
+                        // Create the cloned opportunity products.
+                        service.Create(clonedProduct);
+                    }
+                    tracing.Trace("plugin> CloneAndAssociateOpportunityProducts - Finished cloning and associating opportunity products");
+                }
+            }
+            catch (FaultException<OrganizationServiceFault> ex)
+            {
+                tracing.Trace("plugin> CloneAndAssociateOpportunityProducts - Fault Exception Code: {0} - Message: {1}", ex.Detail.ErrorCode, ex.Detail.Message);
+                throw new InvalidPluginExecutionException("CloneAndAssociateOpportunityProducts - Fault Exception", ex);
+            }
+            catch (Exception ex)
+            {
+                tracing.Trace("plugin> CloneAndAssociateOpportunityProducts - Unexpected Error: {0}", ex.Message.ToString());
+                throw new InvalidPluginExecutionException("CloneAndAssociateOpportunityProducts - Unexpected Error", ex);
+            }
 
         }
     }
