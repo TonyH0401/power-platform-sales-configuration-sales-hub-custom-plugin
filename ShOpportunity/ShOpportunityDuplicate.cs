@@ -3,7 +3,6 @@ using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Query;
 using ShPlugins;
 using System;
-using System.IdentityModel.Metadata;
 using System.Linq;
 using System.ServiceModel;
 
@@ -33,11 +32,8 @@ namespace ShOpportunity
                     // The "EntityReference" can only gives the logical name and the GUID.
                     string entityRefLogicalName = entityRef.LogicalName.ToString();
                     Guid entityRefGUID = entityRef.Id;
-                    // Retrieve the full data
-                    Entity original = service.Retrieve(entityRefLogicalName, entityRefGUID, new ColumnSet(true));
-                    Entity demo = RetrieveOriginalOpportunity(service, tracing, entityRefLogicalName, entityRefGUID);
-                    Opportunity demoOpp = (Opportunity)demo;
-                    tracing.Trace("demo value: {0}", demoOpp.Name);
+                    // Use "RetrieveOriginalOpportunity" to retrieve the full "Opportunity" data based on the "Opportunity" GUID.
+                    Entity original = RetrieveOriginalOpportunity(service, tracing, entityRefLogicalName, entityRefGUID);
 
                     // Cloning process
                     var clone = new Opportunity();
@@ -170,9 +166,9 @@ namespace ShOpportunity
                         {
                             Id = clonedBPFType.Id,
                             ProcessId = originalBPFType.ProcessId,
-                            //StageId = originalBPFType.StageId,
+                            //StageId = originalBPFType.StageId, // There isn't any properties called "StageId".
                             TraversedPath = originalBPFType.TraversedPath
-                            // Missing the complete option called Active Stage
+                            // Missing the complete option called ActiveStageId and State/Status.
                         };
                         service.Update(clonedAccount);
                     }
@@ -286,6 +282,76 @@ namespace ShOpportunity
                 tracing.Trace("plugin> RetrieveOriginalOpportunity - Unexpected Error: {0}", ex.Message.ToString());
                 throw new InvalidPluginExecutionException("RetrieveOriginalOpportunity - Unexpected Error", ex);
             }
+        }
+
+        public Guid CloneOpportunity(IOrganizationService service, ITracingService tracing, Entity originalOpportunity)
+        {
+            try
+            {
+                // ==========================
+                // Clone "Opportunity" process.
+                // ==========================
+                // Prepare variable "clone" to store "Opportunity" values.
+                var clone = new Opportunity();
+                // Prepare variable "props" for original "Opportunity" properties.
+                var props = typeof(Opportunity).GetProperties();
+                // Loop through each property of "Opportunity".
+                foreach (var prop in props)
+                {
+                    // Skip these properties because they cause duplication error.
+                    if (!prop.CanWrite ||
+                        !prop.CanRead ||
+                        prop.GetIndexParameters().Length > 0)
+                        continue;
+                    if ((prop.Name.EndsWith("Id", StringComparison.OrdinalIgnoreCase) &&
+                         prop.Name != "CustomerId" &&
+                         prop.Name != "ParentContactId" &&
+                         prop.Name != "ParentAccountId" &&
+                         prop.Name != "OwnerId" &&
+                         prop.Name != "TransactionCurrencyId" && prop.Name != "PriceLevelId") ||
+                        prop.Name.StartsWith("Created", StringComparison.OrdinalIgnoreCase) ||
+                        prop.Name.StartsWith("Modified", StringComparison.OrdinalIgnoreCase) ||
+                        prop.Name == "OpportunityId" ||
+                        prop.Name == "EntityState" ||
+                        prop.Name == "StateCode" ||
+                        prop.Name == "StatusCode" ||
+                        prop.Name == "Attributes")
+                        continue;
+                    // Use this to list all of the properties and to debug which properties/attributes cause duplication error.
+                    //tracing.Trace("Property Name: {0}", prop.Name.ToString());
+                    // Get the value from the property, correspondingly.
+                    var value = prop.GetValue(originalOpportunity);
+                    // Set the value to the "clone" variable property, correspondingly.
+                    if (value != null)
+                    {
+                        prop.SetValue(clone, value);
+                    }
+                }
+                // Add "[Cloned]" pre-fix to the "clone"'s name property. 
+                clone.Name = "[Cloned] " + clone.Name;
+                // Create the clone "Opportunity" and assign the GUID value to a variable.
+                var clonedId = service.Create(clone);
+                tracing.Trace("plugin> CloneOpportunity - Opportunity cloned: {0}", clonedId);
+
+
+
+                return new Guid();
+            }
+            catch (FaultException<OrganizationServiceFault> ex)
+            {
+                tracing.Trace("plugin> CloneOpportunity - Fault Exception Code: {0} - Message: {1}", ex.Detail.ErrorCode, ex.Detail.Message);
+                throw new InvalidPluginExecutionException("CloneOpportunity - Fault Exception", ex);
+            }
+            catch (Exception ex)
+            {
+                tracing.Trace("plugin> CloneOpportunity - Unexpected Error: {0}", ex.Message.ToString());
+                throw new InvalidPluginExecutionException("CloneOpportunity - Unexpected Error", ex);
+            }
+        }
+
+        public void CloneAndAssociateOpportunityProducts(IOrganizationService service, ITracingService tracing)
+        {
+
         }
     }
 }
