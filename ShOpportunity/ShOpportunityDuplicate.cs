@@ -36,8 +36,7 @@ namespace ShOpportunity
                     Entity original = RetrieveOriginalOpportunity(service, tracing, entityRefLogicalName, entityRefGUID);
                     // Cloning "Opportunity" process.
                     var clonedId = CloneOpportunity(service, tracing, original);
-
-                    // Set the output parameter as "success" once completed
+                    // Set the output parameter value as cloned opportunity GUID for loading form via JS.
                     //context.OutputParameters["output"] = "success";
                     context.OutputParameters["output"] = clonedId.ToString();
                     tracing.Trace("plugin> MainExecution - Opportunity cloning process completed - Cloned opportunity output GUID: {0}", context.OutputParameters["output"].ToString());
