@@ -3,6 +3,8 @@ using Microsoft.Xrm.Sdk.Messages;
 using Microsoft.Xrm.Sdk.Query;
 using ShPlugins;
 using System;
+using System.IdentityModel.Metadata;
+using System.Linq;
 using System.ServiceModel;
 
 namespace ShOpportunity
@@ -20,19 +22,22 @@ namespace ShOpportunity
             try
             {
                 // Trace log to verify plugin is running (before context variable).
-                tracing.Trace("> Verify plugin is running: ShOpportunityDuplicate");
+                tracing.Trace("plugin> Verify plugin is running: ShOpportunityDuplicate");
                 // Check for "Target" variable and check for "Target" type is "EntityReference" before plugin begin to run.
                 // This uses "Target" because the plugin is linked to a Bound Custom Action, "Target" is generated automatically.
                 if (context.InputParameters.Contains("Target") && context.InputParameters["Target"] is EntityReference)
                 {
-                    // Plugin is activated using Custom Action, so 'EntityReference' is used
+                    // This plugin is activated using Bound Custom Action, so "EntityReference" is used instead of "Entity".
                     EntityReference entityRef = (EntityReference)context.InputParameters["Target"];
                     if (entityRef.LogicalName != Opportunity.EntityLogicalName) return;
-                    // We are using 'EntityReference' so we can get only logical name and GUID
+                    // The "EntityReference" can only gives the logical name and the GUID.
                     string entityRefLogicalName = entityRef.LogicalName.ToString();
                     Guid entityRefGUID = entityRef.Id;
                     // Retrieve the full data
                     Entity original = service.Retrieve(entityRefLogicalName, entityRefGUID, new ColumnSet(true));
+                    Entity demo = RetrieveOriginalOpportunity(service, tracing, entityRefLogicalName, entityRefGUID);
+                    Opportunity demoOpp = (Opportunity)demo;
+                    tracing.Trace("demo value: {0}", demoOpp.Name);
 
                     // Cloning process
                     var clone = new Opportunity();
@@ -238,11 +243,49 @@ namespace ShOpportunity
             }
             catch (Exception ex)
             {
-                tracing.Trace("Exception Message: {0}", ex.Message.ToString());
-                throw;
+                tracing.Trace("plugin> MainExecution - Exception Message: {0}", ex.Message.ToString());
+                // Re-throw the (previous) exception, doesn't create and throw a new exception.
+                throw; // Give info about which function cause the error without given too much information.
+                // All exceptions thrown here only have string value, they don't contain the "ex" value. If you want the "ex" value, make it inline with $"".
+                //throw new InvalidPluginExecutionException($"MainExecution - Exception Message: {ex.Message.ToString()}"); // Get most recent exception.
+                //throw new InvalidPluginExecutionException($"MainExecution - Exception Message: {ex.InnerException.Message.ToString()}"); // Get the origin exception.
             }
         }
 
-        //public 
+        public Opportunity RetrieveOriginalOpportunity(IOrganizationService service, ITracingService tracing, String entityLogicalName, Guid entityGuid)
+        {
+            try
+            {
+                QueryExpression query = new QueryExpression(entityLogicalName)
+                {
+                    ColumnSet = new ColumnSet(true), // Retrieve all of the column.
+                    Criteria = new FilterExpression
+                    {
+                        Conditions =
+                    {
+                        new ConditionExpression("opportunityid", ConditionOperator.Equal, entityGuid)
+                    }
+                    }
+                };
+                var result = service.RetrieveMultiple(query);
+                if (result.Entities.Count == 0)
+                {
+                    tracing.Trace("plugin> RetrieveOriginalOpportunity - No Opportunity found for Guid: {0}", entityGuid);
+                    throw new InvalidPluginExecutionException($"RetrieveOriginalOpportunity - No Opportunity found with Guid: {entityGuid}");
+                }
+                tracing.Trace("plugin> RetrieveOriginalOpportunity - Opportunity Found for Guid: {0}", entityGuid);
+                return result.Entities.FirstOrDefault() as Opportunity;
+            }
+            catch (FaultException<OrganizationServiceFault> ex)
+            {
+                tracing.Trace("plugin> RetrieveOriginalOpportunity - Fault Exception Code: {0} - Message: {1}", ex.Detail.ErrorCode, ex.Detail.Message);
+                throw new InvalidPluginExecutionException("RetrieveOriginalOpportunity - Fault Exception", ex);
+            }
+            catch (Exception ex)
+            {
+                tracing.Trace("plugin> RetrieveOriginalOpportunity - Unexpected Error: {0}", ex.Message.ToString());
+                throw new InvalidPluginExecutionException("RetrieveOriginalOpportunity - Unexpected Error", ex);
+            }
+        }
     }
 }
